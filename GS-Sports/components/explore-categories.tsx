@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Category {
@@ -9,36 +10,42 @@ interface Category {
   image: string
 }
 
-const categories: Category[] = [
+const categories: (Category & { href: string })[] = [
   {
     id: 1,
     name: "Shoes",
     image: "/images/shoe-category.jpg",
+    href: "/shop?category=shoes",
   },
   {
     id: 2,
     name: "Bats",
     image: "/images/bat-category.jpg",
+    href: "/cricket/bats",
   },
   {
     id: 3,
     name: "Gloves",
     image: "/images/gloves-category.jpg",
+    href: "/cricket/gloves",
   },
   {
     id: 4,
     name: "Pads",
     image: "/cricket-pads.jpg",
+    href: "/cricket/pads",
   },
   {
     id: 5,
     name: "Kit Bags",
     image: "/cricket-kit-bag.jpg",
+    href: "/shop?category=kit-bags",
   },
   {
     id: 6,
     name: "Inners",
     image: "/cricket-inners.jpg",
+    href: "/cricket/inners",
   },
 ]
 
@@ -96,9 +103,12 @@ export default function ExploreCategories() {
                 </div>
 
                 <div className="p-6 flex items-center justify-center">
-                  <button className="w-full py-4 border border-black bg-white text-black font-bold font-montserrat hover:bg-black hover:text-white transition-all duration-300 uppercase tracking-wide">
+                  <Link 
+                    href={category.href}
+                    className="w-full py-4 border border-black bg-white text-black font-bold font-montserrat hover:bg-black hover:text-white transition-all duration-300 uppercase tracking-wide text-center block"
+                  >
                     Shop Now
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}

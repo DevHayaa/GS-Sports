@@ -40,21 +40,22 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background">
       <Header />
       {/* Hero Section */}
-      <section className="relative h-96 md:h-[500px] bg-gradient-to-r from-card to-card/50 overflow-hidden">
+      <section className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] bg-gradient-to-r from-card to-card/50 overflow-hidden">
         <div
           className="absolute inset-0"
           style={{
             backgroundImage: "url('/images/about-banner.png')",
-            backgroundSize: " cover",
+            backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         />
-        <div className="relative h-full flex items-center justify-start px-4 md:px-8">
-          <div className="text-left max-w-2xl md:pl-12 lg:pl-24">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-[#1b3d58] to-[#47728f]">
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="relative h-full flex items-center justify-start px-4 sm:px-6 md:px-8 lg:px-12">
+          <div className="text-left max-w-2xl sm:max-w-3xl">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 text-white drop-shadow-lg">
               About GS Sports & Apparels
             </h1>
-            <p className="text-sm md:text-base text-black text-balance">
+            <p className="text-sm sm:text-base md:text-lg text-white/95 text-balance drop-shadow-md">
               Empowering Australian athletes with premium sports equipment since 2015
             </p>
           </div>

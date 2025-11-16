@@ -71,12 +71,26 @@ export default function ClothingCategoryPage({ params }: { params: Promise<{ slu
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Hero Section */}
+      <section className="relative h-[250px] sm:h-[300px] md:h-[400px] bg-gradient-to-r from-gray-900 to-gray-700 overflow-hidden">
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="relative h-full flex items-center justify-center px-4 sm:px-6 md:px-8">
+          <div className="text-center max-w-3xl">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-white drop-shadow-lg">
+              {category.name}
+            </h1>
+            <p className="text-sm sm:text-base md:text-lg text-white/90 text-balance drop-shadow-md">
+              {category.description}
+            </p>
+          </div>
+        </div>
+      </section>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+        <nav className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6 flex-wrap">
           {breadcrumbItems.map((item, index) => (
             <div key={index} className="flex items-center gap-2">
-              {index > 0 && <ChevronRight className="w-4 h-4" />}
+              {index > 0 && <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />}
               <Link
                 href={item.href}
                 className={`hover:text-gray-900 transition-colors ${
@@ -88,12 +102,6 @@ export default function ClothingCategoryPage({ params }: { params: Promise<{ slu
             </div>
           ))}
         </nav>
-
-        {/* Category Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{category.name}</h1>
-          <p className="text-lg text-gray-600">{category.description}</p>
-        </div>
 
         {/* Products Count */}
         <div className="mb-6">

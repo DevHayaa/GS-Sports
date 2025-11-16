@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
+import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Product {
@@ -92,9 +93,10 @@ export default function HotSellers() {
             style={{ scrollBehavior: "smooth" }}
           >
             {products.map((product) => (
-              <div
+              <Link
                 key={product.id}
-                className="flex-shrink-0 w-72 bg-white border border-gray-200 shadow-sm hover:shadow-lg hover:scale-105 transition-all duration-300 overflow-hidden group"
+                href={`/product/${product.id}`}
+                className="flex-shrink-0 w-72 bg-white border border-gray-200 shadow-sm hover:shadow-lg hover:scale-105 transition-all duration-300 overflow-hidden group block"
               >
                 {/* Product Image Container */}
                 <div className="relative w-full h-[400px] overflow-hidden">
@@ -112,7 +114,7 @@ export default function HotSellers() {
                   </h3>
                   <p className="text-sm text-gray-600 font-montserrat mt-2 line-clamp-2">{product.name}</p>
                 </div> */}
-              </div>
+              </Link>
             ))}
           </div>
 
