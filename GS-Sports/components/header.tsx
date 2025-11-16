@@ -154,7 +154,7 @@ export default function Header() {
           {/* Logo - Intertwined GS */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <img
-              src="/images/gs-logo.png"
+              src="/images/Gs-logo.png"
               alt="GS Logo"
               className="w-16 h-16 object-contain"
             />
