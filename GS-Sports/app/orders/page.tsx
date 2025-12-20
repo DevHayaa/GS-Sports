@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -84,7 +84,7 @@ const paymentStatusConfig = {
   }
 }
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -318,5 +318,20 @@ export default function OrdersPage() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Package className="w-8 h-8 mx-auto mb-4 text-[#92d7f6] animate-pulse" />
+          <p className="text-gray-600">Loading orders...</p>
+        </div>
+      </div>
+    }>
+      <OrdersPageContent />
+    </Suspense>
   )
 }
