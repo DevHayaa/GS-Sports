@@ -1,36 +1,120 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import { login } from "@/services/apiService"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string>("")
+  const [success, setSuccess] = useState<string>("")
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Login attempt:", formData)
-      alert("Login successful!")
-      setIsLoading(false)
-    }, 1000)
+  const validateEmail = (email: string): string | undefined => {
+    if (!email) {
+      return "Email is required"
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address"
+    }
+    return undefined
+  }
+
+  const validatePassword = (password: string): string | undefined => {
+    if (!password) {
+      return "Password is required"
+    }
+    return undefined
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     })
+    
+    // Clear error for this field when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors({
+        ...errors,
+        [name]: undefined
+      })
+    }
+    setError("")
+  }
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    let fieldError: string | undefined
+
+    if (name === "email") {
+      fieldError = validateEmail(value)
+    } else if (name === "password") {
+      fieldError = validatePassword(value)
+    }
+
+    if (fieldError) {
+      setErrors({
+        ...errors,
+        [name]: fieldError
+      })
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setSuccess("")
+    
+    // Validate all fields
+    const emailError = validateEmail(formData.email)
+    const passwordError = validatePassword(formData.password)
+    
+    if (emailError || passwordError) {
+      setErrors({
+        email: emailError,
+        password: passwordError
+      })
+      return
+    }
+    
+    setIsLoading(true)
+    
+    try {
+      const response = await login({
+        email: formData.email,
+        password: formData.password
+      })
+      
+      if (response.success) {
+        setSuccess("Login successful! Redirecting...")
+        // Dispatch custom event to update header
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth-change"))
+        }
+        setTimeout(() => {
+          router.push("/")
+          router.refresh()
+        }, 1000)
+      }
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please try again.")
+      console.error("Login error:", err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -51,6 +135,16 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="bg-white py-8 px-6 shadow-xl rounded-2xl border border-gray-200">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+              {success}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
@@ -66,10 +160,16 @@ export default function LoginPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent ${
+                    errors.email ? "border-red-300" : "border-gray-300"
+                  }`}
                   placeholder="Enter your email"
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
               </div>
             </div>
 
@@ -87,10 +187,16 @@ export default function LoginPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent ${
+                    errors.password ? "border-red-300" : "border-gray-300"
+                  }`}
                   placeholder="Enter your password"
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}

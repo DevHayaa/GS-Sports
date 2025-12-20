@@ -1,12 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import { signup } from "@/services/apiService"
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -19,35 +22,137 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [error, setError] = useState<string>("")
+  const [success, setSuccess] = useState<string>("")
+  const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({})
+
+  const validateField = (name: string, value: string): string | undefined => {
+    switch (name) {
+      case "firstName":
+        if (!value.trim()) return "First name is required"
+        if (value.trim().length < 2) return "First name must be at least 2 characters"
+        return undefined
+      case "lastName":
+        if (!value.trim()) return "Last name is required"
+        if (value.trim().length < 2) return "Last name must be at least 2 characters"
+        return undefined
+      case "email":
+        if (!value) return "Email is required"
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) return "Please enter a valid email address"
+        return undefined
+      case "password":
+        if (!value) return "Password is required"
+        if (value.length < 6) return "Password must be at least 6 characters"
+        return undefined
+      case "confirmPassword":
+        if (!value) return "Please confirm your password"
+        if (value !== formData.password) return "Passwords do not match"
+        return undefined
+      default:
+        return undefined
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData({
+      ...formData,
+      [name]: value
+    })
+    
+    // Clear error for this field when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors({
+        ...errors,
+        [name]: undefined
+      })
+    }
+    setError("")
+    
+    // Re-validate confirmPassword if password changes
+    if (name === "password" && formData.confirmPassword) {
+      const confirmError = value !== formData.confirmPassword ? "Passwords do not match" : undefined
+      setErrors({
+        ...errors,
+        confirmPassword: confirmError
+      })
+    }
+  }
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    const fieldError = validateField(name, value)
+    
+    if (fieldError) {
+      setErrors({
+        ...errors,
+        [name]: fieldError
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setSuccess("")
     
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!")
+    // Validate all fields
+    const firstNameError = validateField("firstName", formData.firstName)
+    const lastNameError = validateField("lastName", formData.lastName)
+    const emailError = validateField("email", formData.email)
+    const passwordError = validateField("password", formData.password)
+    const confirmPasswordError = validateField("confirmPassword", formData.confirmPassword)
+    
+    if (firstNameError || lastNameError || emailError || passwordError || confirmPasswordError) {
+      setErrors({
+        firstName: firstNameError,
+        lastName: lastNameError,
+        email: emailError,
+        password: passwordError,
+        confirmPassword: confirmPasswordError
+      })
       return
     }
     
     if (!agreeToTerms) {
-      alert("Please agree to the terms and conditions!")
+      setError("Please agree to the terms and conditions!")
       return
     }
     
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Registration attempt:", formData)
-      alert("Registration successful! Please check your email to verify your account.")
+    try {
+      // Combine firstName and lastName into name for API
+      const response = await signup({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        password: formData.password
+      })
+      
+      if (response.success) {
+        setSuccess("Registration successful! Redirecting...")
+        // Dispatch custom event to update header
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth-change"))
+        }
+        setTimeout(() => {
+          router.push("/")
+          router.refresh()
+        }, 1500)
+      }
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.")
+      console.error("Signup error:", err)
+    } finally {
       setIsLoading(false)
-    }, 1000)
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    }
   }
 
   return (
@@ -68,6 +173,16 @@ export default function RegisterPage() {
 
         {/* Registration Form */}
         <div className="bg-white py-8 px-6 shadow-xl rounded-2xl border border-gray-200">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+              {success}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
@@ -85,10 +200,16 @@ export default function RegisterPage() {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent ${
+                      errors.firstName ? "border-red-300" : "border-gray-300"
+                    }`}
                     placeholder="First name"
                   />
+                  {errors.firstName && (
+                    <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>
+                  )}
                 </div>
               </div>
               
@@ -106,10 +227,16 @@ export default function RegisterPage() {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     required
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent ${
+                      errors.lastName ? "border-red-300" : "border-gray-300"
+                    }`}
                     placeholder="Last name"
                   />
+                  {errors.lastName && (
+                    <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -169,10 +296,16 @@ export default function RegisterPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent ${
+                    errors.password ? "border-red-300" : "border-gray-300"
+                  }`}
                   placeholder="Create a password"
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -201,10 +334,16 @@ export default function RegisterPage() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent ${
+                    errors.confirmPassword ? "border-red-300" : "border-gray-300"
+                  }`}
                   placeholder="Confirm your password"
                 />
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}

@@ -48,6 +48,15 @@ export default function ProductCard({ id, name, description, price, image }: Pro
 
   const wishlisted = isInWishlist(id)
 
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(price)
+  }
+
   return (
     <Link href={`/product/${id}`}>
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg hover:scale-105 transition-all duration-300 group relative">
@@ -74,7 +83,7 @@ export default function ProductCard({ id, name, description, price, image }: Pro
           <h3 className="font-bold text-gray-900 text-sm mb-1 group-hover:text-[#92d7f6] transition-colors">{name}</h3>
           <p className="text-gray-600 text-xs mb-3 line-clamp-2">{description}</p>
           <div className="flex items-center justify-between">
-            <span className="text-[#92d7f6] font-bold text-base">${price.toFixed(2)}</span>
+            <span className="text-[#92d7f6] font-bold text-base">{formatPrice(price)}</span>
             <button
               onClick={handleAddToCart}
               className="bg-[#92d7f6] text-white p-2 rounded-lg hover:bg-[#7bc5e8] transition-colors"

@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Search, ShoppingCart, ChevronDown, ChevronUp, Phone, Heart } from "lucide-react"
-import { useCart } from "@/context/cart-context"
+import { Search, ShoppingCart, ChevronDown, ChevronUp, Phone, Heart, LogOut, User, Package } from "lucide-react"
+import { useCartStore } from "@/store/cart-store"
 import { useWishlist } from "@/context/wishlist-context"
+import { logout } from "@/services/apiService"
 
 export default function Header() {
   const router = useRouter()
@@ -15,13 +16,80 @@ export default function Header() {
   const [isClothingOpen, setIsClothingOpen] = useState(false)
   const [isCustomSportsOpen, setIsCustomSportsOpen] = useState(false)
   const [isCustomWorkwearOpen, setIsCustomWorkwearOpen] = useState(false)
-  const { items, setIsCartOpen } = useCart()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userName, setUserName] = useState<string>("")
+  const { getTotalQuantity, getTotalAmount, setIsOpen } = useCartStore()
   const { items: wishlistItems } = useWishlist()
   
   const cricketRef = useRef<HTMLDivElement>(null)
   const customSportsRef = useRef<HTMLDivElement>(null)
   const clothingRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
+
+  // Check if user is logged in
+  const checkAuthStatus = () => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token")
+      const user = localStorage.getItem("user")
+      setIsLoggedIn(!!token)
+      if (user) {
+        try {
+          const userData = JSON.parse(user)
+          setUserName(userData.name || userData.email || "")
+        } catch (e) {
+          // Invalid user data
+        }
+      } else {
+        setUserName("")
+      }
+    }
+  }
+
+  useEffect(() => {
+    checkAuthStatus()
+    
+    // Listen for storage changes (when user logs in/out in another tab)
+    const handleStorageChange = () => {
+      checkAuthStatus()
+    }
+    
+    // Listen for custom auth events
+    const handleAuthChange = () => {
+      checkAuthStatus()
+    }
+    
+    window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("auth-change", handleAuthChange)
+    
+    // Also check on focus (in case user logged in/out in same tab)
+    window.addEventListener("focus", checkAuthStatus)
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("auth-change", handleAuthChange)
+      window.removeEventListener("focus", checkAuthStatus)
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      setIsLoggedIn(false)
+      setUserName("")
+      router.push("/")
+      router.refresh()
+    } catch (error) {
+      // Even if logout fails, clear local storage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+      }
+      setIsLoggedIn(false)
+      setUserName("")
+      router.push("/")
+      router.refresh()
+    }
+  }
 
   const handleMobileLinkClick = (href: string, e?: React.MouseEvent) => {
     if (e) {
@@ -160,7 +228,9 @@ export default function Header() {
     ),
   }
 
-  const cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // Cart totals from Zustand store
+  const cartTotal = getTotalAmount()
+  const cartCount = getTotalQuantity()
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50 bg-white">
@@ -377,10 +447,35 @@ export default function Header() {
               CONTACT
             </Link>
 
-            {/* LOGIN */}
-            <Link href="/login" className="text-sm font-medium text-gray-700 uppercase hover:text-gray-900 transition-colors">
-              LOGIN
-            </Link>
+            {/* LOGIN / LOGOUT */}
+            {isLoggedIn ? (
+              <div className="relative group">
+                <button className="flex items-center gap-1 text-sm font-medium text-gray-700 uppercase hover:text-gray-900 transition-colors">
+                  <User className="w-4 h-4" />
+                  {userName ? userName.split(" ")[0] : "ACCOUNT"}
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <Link
+                    href="/profile"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link href="/login" className="text-sm font-medium text-gray-700 uppercase hover:text-gray-900 transition-colors">
+                LOGIN
+              </Link>
+            )}
           </nav>
 
           {/* Right Side - Cart, Wishlist and Search */}
@@ -401,15 +496,17 @@ export default function Header() {
 
             {/* Cart */}
             <button
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => setIsOpen(true)}
               className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
             >
-              <span className="text-sm font-medium">${cartTotal.toFixed(2)}</span>
+              <span className="text-sm font-medium">{new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cartTotal)}</span>
               <div className="relative">
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#92d7f6] text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  {items.length}
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#92d7f6] text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {cartCount}
+                  </span>
+                )}
               </div>
             </button>
 
@@ -666,12 +763,34 @@ export default function Header() {
                 CONTACT
               </button>
 
-              <button
-                onClick={(e) => handleMobileLinkClick("/login", e)}
-                className="block w-full text-left px-3 py-2 text-sm font-medium text-gray-700 uppercase hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                LOGIN
-              </button>
+              {isLoggedIn ? (
+                <div className="px-3 py-2">
+                  <div className="text-sm font-medium text-gray-700 mb-2">
+                    {userName ? `Welcome, ${userName.split(" ")[0]}` : "Account"}
+                  </div>
+                  <button
+                    onClick={(e) => handleMobileLinkClick("/profile", e)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 uppercase hover:bg-gray-50 rounded-lg transition-colors text-left"
+                  >
+                    <User className="w-4 h-4" />
+                    MY PROFILE
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 uppercase hover:bg-gray-50 rounded-lg transition-colors text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    LOGOUT
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={(e) => handleMobileLinkClick("/login", e)}
+                  className="block w-full text-left px-3 py-2 text-sm font-medium text-gray-700 uppercase hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  LOGIN
+                </button>
+              )}
             </div>
           </nav>
         )}

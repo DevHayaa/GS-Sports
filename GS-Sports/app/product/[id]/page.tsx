@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
-import { useCart } from "@/context/cart-context"
+import { useCartStore } from "@/store/cart-store"
 import { useWishlist } from "@/context/wishlist-context"
-import { ShoppingCart, Heart, Star, ChevronRight, Minus, Plus, Share2, Check } from "lucide-react"
+import { ShoppingCart, Heart, Star, ChevronRight, Minus, Plus, Share2, Check, AlertCircle, CheckCircle } from "lucide-react"
+import { getProductBySlug } from "@/services/apiService"
 
 // Mock product data - In a real app, this would come from an API
 const allProducts: Record<string, {
@@ -107,16 +108,67 @@ const allProducts: Record<string, {
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const productId = params.id as string
-  const product = allProducts[productId]
-
+  const productSlug = params.id as string
+  
+  const [product, setProduct] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [selectedColor, setSelectedColor] = useState<string>("")
   const [quantity, setQuantity] = useState(1)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
-  const { addItem } = useCart()
+  const { addItem, setIsOpen } = useCartStore()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setIsLoading(true)
+      try {
+        const response = await getProductBySlug(productSlug)
+        if (response.success && response.data?.product) {
+          const productData = response.data.product
+          setProduct({
+            id: productData._id,
+            slug: productData.slug,
+            name: productData.name,
+            description: productData.description,
+            fullDescription: productData.description,
+            price: productData.discountPrice || productData.price,
+            originalPrice: productData.discountPrice ? productData.price : undefined,
+            image: productData.images?.[0] || "/placeholder.jpg",
+            images: productData.images || [productData.images?.[0] || "/placeholder.jpg"],
+            category: productData.categoryId?.name || productData.category,
+            rating: 4.5,
+            reviews: 0,
+            inStock: productData.stock > 0,
+            stock: productData.stock
+          })
+        }
+      } catch (error: any) {
+        console.error("Error fetching product:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (productSlug) {
+      fetchProduct()
+    }
+  }, [productSlug])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+          <p className="text-gray-600">Loading product...</p>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -141,13 +193,39 @@ export default function ProductDetailPage() {
   const isWishlisted = isInWishlist(product.id)
 
   const handleAddToCart = () => {
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      quantity: quantity,
-      image: product.image,
-    })
+    setIsAddingToCart(true)
+    setCartMessage(null)
+
+    try {
+      // Add to guest cart (Zustand store) - no API call needed
+      addItem({
+        productId: product.id,
+        name: product.name,
+        image: product.image,
+        price: product.originalPrice || product.price,
+        discountPrice: product.originalPrice ? product.price : undefined,
+        quantity: quantity,
+      })
+
+      // Open cart sidebar and show success message
+      setIsOpen(true)
+      setCartMessage({ type: "success", text: "Item added to cart successfully!" })
+      setTimeout(() => setCartMessage(null), 3000)
+    } catch (err: any) {
+      setCartMessage({ type: "error", text: "Failed to add item to cart" })
+      setTimeout(() => setCartMessage(null), 5000)
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
+  
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(price)
   }
 
   const handleWishlistToggle = () => {
@@ -241,9 +319,9 @@ export default function ProductDetailPage() {
             {/* Price */}
             <div className="mb-6">
               <div className="flex items-center gap-3">
-                <span className="text-4xl font-bold text-[#92d7f6]">${product.price.toFixed(2)}</span>
+                <span className="text-4xl font-bold text-[#92d7f6]">{formatPrice(product.price)}</span>
                 {product.originalPrice && (
-                  <span className="text-xl text-gray-400 line-through">${product.originalPrice.toFixed(2)}</span>
+                  <span className="text-xl text-gray-400 line-through">{formatPrice(product.originalPrice)}</span>
                 )}
               </div>
             </div>
@@ -326,22 +404,56 @@ export default function ProductDetailPage() {
               {product.inStock ? (
                 <div className="flex items-center gap-2 text-green-600">
                   <Check className="w-5 h-5" />
-                  <span className="font-semibold">In Stock</span>
+                  <span className="font-semibold">
+                    In Stock {product.stock && `(${product.stock} available)`}
+                  </span>
                 </div>
               ) : (
                 <div className="text-red-600 font-semibold">Out of Stock</div>
               )}
             </div>
 
+            {/* Cart Message */}
+            {cartMessage && (
+              <div className={`mb-4 p-3 rounded-lg flex items-start gap-3 ${
+                cartMessage.type === "success" 
+                  ? "bg-green-50 border border-green-200" 
+                  : "bg-red-50 border border-red-200"
+              }`}>
+                {cartMessage.type === "success" ? (
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                )}
+                <p className={`text-sm ${
+                  cartMessage.type === "success" ? "text-green-700" : "text-red-700"
+                }`}>
+                  {cartMessage.text}
+                </p>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <button
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!product.inStock || isAddingToCart}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#92d7f6] text-white font-semibold rounded-lg hover:bg-[#7bc5e8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ShoppingCart className="w-5 h-5" />
-                Add to Cart
+                {isAddingToCart ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-5 h-5" />
+                    Add to Cart
+                  </>
+                )}
               </button>
               <button
                 onClick={handleWishlistToggle}
