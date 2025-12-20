@@ -944,3 +944,35 @@ export const getUserDashboard = async () => {
   const response = await getApi("/user/dashboard", token, true);
   return await handleResponse(response);
 };
+
+/**
+ * Submit Contact Form
+ * POST /api/contact
+ */
+export const submitContactForm = async (data: {
+  fullName: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}) => {
+  // Validation
+  if (!data.fullName || data.fullName.trim().length < 2) {
+    throw { message: "Full name is required (minimum 2 characters)", status: 400 };
+  }
+  if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    throw { message: "Valid email is required", status: 400 };
+  }
+  if (!data.phone || data.phone.trim().length < 10) {
+    throw { message: "Phone number is required (minimum 10 characters)", status: 400 };
+  }
+  if (!data.subject || data.subject.trim().length < 3) {
+    throw { message: "Subject is required (minimum 3 characters)", status: 400 };
+  }
+  if (!data.message || data.message.trim().length < 10) {
+    throw { message: "Message is required (minimum 10 characters)", status: 400 };
+  }
+
+  const response = await postApi("/contact", data, null, true);
+  return await handleResponse(response);
+};

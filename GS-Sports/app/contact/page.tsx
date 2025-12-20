@@ -3,32 +3,67 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Mail, Phone, MapPin, Clock, Send } from "lucide-react"
+import { Mail, Phone, MapPin, Clock, Send, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import { submitContactForm } from "@/services/apiService"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
-    name: "",
+    fullName: "",
     email: "",
+    phone: "",
     subject: "",
     message: "",
   })
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string>("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
+    // Clear general error
+    if (error) setError("")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => {
-      setFormData({ name: "", email: "", subject: "", message: "" })
-      setSubmitted(false)
-    }, 3000)
+    setError("")
+    setFieldErrors({})
+    setIsSubmitting(true)
+
+    try {
+      const response = await submitContactForm(formData)
+      
+      if (response.success) {
+        setSubmitted(true)
+        setFormData({ fullName: "", email: "", phone: "", subject: "", message: "" })
+        setTimeout(() => {
+          setSubmitted(false)
+        }, 5000)
+      } else {
+        setError(response.message || "Failed to send message. Please try again.")
+      }
+    } catch (err: any) {
+      if (err.status === 400 && err.message) {
+        setError(err.message)
+      } else {
+        setError(err.message || "Failed to send message. Please try again.")
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const contactInfo = [
@@ -115,73 +150,148 @@ export default function ContactPage() {
               <h2 className="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-[#1b3d58] to-[#47728f]">Send us a Message</h2>
 
               {submitted ? (
-                <div className="bg-accent/20 border border-accent rounded-lg p-6 text-center">
-                  <div className="w-12 h-12 bg-accent/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Send className="w-6 h-6 text-accent" />
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2 bg-clip-text text-transparent bg-gradient-to-b from-[#1b3d58] to-[#47728f]">Message Sent!</h3>
                   <p className="text-muted-foreground">Thank you for reaching out. We'll get back to you soon.</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  )}
+
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Name</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
+                      name="fullName"
+                      value={formData.fullName}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-all duration-300 ease-out"
-                      placeholder="Your Name"
+                      className={`w-full px-4 py-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-300 ease-out ${
+                        fieldErrors.fullName
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-border focus:border-accent"
+                      }`}
+                      placeholder="Your Full Name"
                     />
+                    {fieldErrors.fullName && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.fullName}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Email</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-all duration-300 ease-out"
+                      className={`w-full px-4 py-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-300 ease-out ${
+                        fieldErrors.email
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-border focus:border-accent"
+                      }`}
                       placeholder="your@email.com"
                     />
+                    {fieldErrors.email && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Subject</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required
+                      className={`w-full px-4 py-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-300 ease-out ${
+                        fieldErrors.phone
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-border focus:border-accent"
+                      }`}
+                      placeholder="0412345678"
+                    />
+                    {fieldErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Subject <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       name="subject"
                       value={formData.subject}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-all duration-300 ease-out"
+                      className={`w-full px-4 py-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-300 ease-out ${
+                        fieldErrors.subject
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-border focus:border-accent"
+                      }`}
                       placeholder="How can we help?"
                     />
+                    {fieldErrors.subject && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.subject}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Message</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Message <span className="text-red-500">*</span>
+                    </label>
                     <textarea
                       name="message"
                       value={formData.message}
                       onChange={handleInputChange}
                       required
                       rows={6}
-                      className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-all duration-300 ease-out resize-none"
+                      className={`w-full px-4 py-3 bg-background border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-300 ease-out resize-none ${
+                        fieldErrors.message
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-border focus:border-accent"
+                      }`}
                       placeholder="Tell us more about your inquiry..."
                     />
+                    {fieldErrors.message && (
+                      <p className="mt-1 text-sm text-red-600">{fieldErrors.message}</p>
+                    )}
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-lg transition-all duration-300 ease-out flex items-center justify-center gap-2"
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-accent hover:bg-accent/90 disabled:bg-accent/50 disabled:cursor-not-allowed text-accent-foreground font-semibold rounded-lg transition-all duration-300 ease-out flex items-center justify-center gap-2"
                   >
-                    <Send className="w-5 h-5" />
-                    Send Message
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        Send Message
+                      </>
+                    )}
                   </button>
                 </form>
               )}
