@@ -109,7 +109,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const productSlug = params.id as string
-  
+
   const [product, setProduct] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -198,13 +198,13 @@ export default function ProductDetailPage() {
 
     try {
       // Add to guest cart (Zustand store) - no API call needed
-      addItem({
+    addItem({
         productId: product.id,
-        name: product.name,
+      name: product.name,
         image: product.image,
         price: product.originalPrice || product.price,
         discountPrice: product.originalPrice ? product.price : undefined,
-        quantity: quantity,
+      quantity: quantity,
       })
 
       // Open cart sidebar and show success message
@@ -450,8 +450,8 @@ export default function ProductDetailPage() {
                   </>
                 ) : (
                   <>
-                    <ShoppingCart className="w-5 h-5" />
-                    Add to Cart
+                <ShoppingCart className="w-5 h-5" />
+                Add to Cart
                   </>
                 )}
               </button>

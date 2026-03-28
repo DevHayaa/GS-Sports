@@ -103,9 +103,9 @@ export default function CricketCategoryPage({ params }: { params: Promise<{ slug
               {category.name}
             </h1>
             {category.description && (
-              <p className="text-sm sm:text-base md:text-lg text-white/90 text-balance drop-shadow-md">
-                {category.description}
-              </p>
+            <p className="text-sm sm:text-base md:text-lg text-white/90 text-balance drop-shadow-md">
+              {category.description}
+            </p>
             )}
           </div>
         </div>
@@ -137,18 +137,18 @@ export default function CricketCategoryPage({ params }: { params: Promise<{ slug
 
         {/* Products Grid */}
         {products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
-              <ProductCard
-                key={product.id}
+            <ProductCard
+              key={product.id}
                 id={product.slug || product.id}
-                name={product.name}
-                description={product.description}
-                price={product.price}
-                image={product.image}
-              />
-            ))}
-          </div>
+              name={product.name}
+              description={product.description}
+              price={product.price}
+              image={product.image}
+            />
+          ))}
+        </div>
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">No products found in this category.</p>

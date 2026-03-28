@@ -472,9 +472,9 @@ export default function Header() {
                 </div>
               </div>
             ) : (
-              <Link href="/login" className="text-sm font-medium text-gray-700 uppercase hover:text-gray-900 transition-colors">
-                LOGIN
-              </Link>
+            <Link href="/login" className="text-sm font-medium text-gray-700 uppercase hover:text-gray-900 transition-colors">
+              LOGIN
+            </Link>
             )}
           </nav>
 
@@ -503,9 +503,9 @@ export default function Header() {
               <div className="relative">
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#92d7f6] text-white text-xs rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#92d7f6] text-white text-xs rounded-full flex items-center justify-center font-bold">
                     {cartCount}
-                  </span>
+                </span>
                 )}
               </div>
             </button>
@@ -784,12 +784,12 @@ export default function Header() {
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={(e) => handleMobileLinkClick("/login", e)}
-                  className="block w-full text-left px-3 py-2 text-sm font-medium text-gray-700 uppercase hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  LOGIN
-                </button>
+              <button
+                onClick={(e) => handleMobileLinkClick("/login", e)}
+                className="block w-full text-left px-3 py-2 text-sm font-medium text-gray-700 uppercase hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                LOGIN
+              </button>
               )}
             </div>
           </nav>

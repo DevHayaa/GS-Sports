@@ -60,8 +60,8 @@ export default function ShopPage() {
         console.error("Error fetching products:", error)
       } finally {
         setIsLoading(false)
+        }
       }
-    }
 
     fetchData()
   }, [currentPage, priceRange, selectedCategory])
@@ -150,7 +150,7 @@ export default function ShopPage() {
                           {subCat.name}
                         </option>
                       ))}
-                    </optgroup>
+                  </optgroup>
                   ))}
                 </select>
               </div>
@@ -214,18 +214,18 @@ export default function ShopPage() {
               </div>
             ) : filteredProducts.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
                       id={product.slug || product.id}
-                      name={product.name}
-                      description={product.description}
-                      price={product.price}
-                      image={product.image}
-                    />
-                  ))}
-                </div>
+                    name={product.name}
+                    description={product.description}
+                    price={product.price}
+                    image={product.image}
+                  />
+                ))}
+              </div>
                 {/* Pagination */}
                 {pagination && pagination.pages > 1 && (
                   <div className="mt-8 flex justify-center gap-2">

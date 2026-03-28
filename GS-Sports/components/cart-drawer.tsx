@@ -128,13 +128,13 @@ export default function CartDrawer() {
 
                 {/* Remove Button & Subtotal */}
                 <div className="flex flex-col items-end justify-between">
-                  <button
+                <button
                     onClick={() => removeItem(item.productId)}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                     aria-label="Remove item"
-                  >
+                >
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                </button>
                   <p className="text-sm font-semibold text-black mt-auto">
                     {formatPrice(item.subtotal)}
                   </p>
@@ -153,7 +153,7 @@ export default function CartDrawer() {
                 <span className="text-gray-600">Total Items:</span>
                 <span className="text-black font-medium">{totalQuantity}</span>
               </div>
-              <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
                 <span className="text-gray-600 font-medium">Total Amount:</span>
                 <span className="text-xl font-bold text-black">{formatPrice(totalAmount)}</span>
               </div>

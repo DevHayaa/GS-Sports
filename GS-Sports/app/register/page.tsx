@@ -142,7 +142,7 @@ export default function RegisterPage() {
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("auth-change"))
         }
-        setTimeout(() => {
+    setTimeout(() => {
           router.push("/")
           router.refresh()
         }, 1500)

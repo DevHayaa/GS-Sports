@@ -394,6 +394,55 @@ export const refreshToken = async (data?: { refreshToken?: string }) => {
 };
 
 /**
+ * Request Password Reset (Forgot Password)
+ * POST /api/auth/forgot-password
+ */
+export const forgotPassword = async (data: { email: string }) => {
+  // Validation
+  if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    throw { message: "Please enter a valid email address", status: 400 };
+  }
+
+  const response = await postApi("/auth/forgot-password", data);
+  
+  // Log for debugging
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+    console.log("Forgot Password Request:", {
+      url: `${BASE_URL}/auth/forgot-password`,
+      email: data.email
+    });
+  }
+  
+  return await handleResponse(response);
+};
+
+/**
+ * Reset Password
+ * POST /api/auth/reset-password
+ */
+export const resetPassword = async (data: { token: string; password: string }) => {
+  // Validation
+  if (!data.token || data.token.trim().length === 0) {
+    throw { message: "Reset token is required", status: 400 };
+  }
+  if (!data.password || data.password.length < 6) {
+    throw { message: "Password must be at least 6 characters long", status: 400 };
+  }
+
+  const response = await postApi("/auth/reset-password", data);
+  
+  // Log for debugging
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+    console.log("Reset Password Request:", {
+      url: `${BASE_URL}/auth/reset-password`,
+      tokenLength: data.token.length
+    });
+  }
+  
+  return await handleResponse(response);
+};
+
+/**
  * Logout
  * POST /api/auth/logout
  */
@@ -487,42 +536,30 @@ export const getCategoryBySlug = async (slug: string) => {
 // ==================== Custom Orders APIs ====================
 
 /**
- * Convert File to base64 data URL
- */
-const fileToDataURL = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
-/**
  * Create Custom Order
  * POST /api/custom-orders
- * Sends as JSON with base64 encoded images (backend expects JSON format based on API docs)
  */
 export const createCustomOrder = async (data: {
-  name: string;
-  email: string;
+  clientName: string;
+  clubOrTeamName: string;
+  address: string;
   phone: string;
-  requirements: string;
-  images?: File[];
-  budget?: number;
+  email: string;
 }) => {
-  // Basic validation
-  if (!data.name || data.name.trim().length < 2) {
+  if (!data.clientName || data.clientName.trim().length < 2) {
     throw { message: "Name must be at least 2 characters", status: 400 };
+  }
+  if (!data.clubOrTeamName || data.clubOrTeamName.trim().length < 2) {
+    throw { message: "Club or team name must be at least 2 characters", status: 400 };
+  }
+  if (!data.address || data.address.trim().length < 5) {
+    throw { message: "Please enter a complete address", status: 400 };
+  }
+  if (!data.phone || data.phone.trim().length < 8) {
+    throw { message: "Please enter a valid phone number", status: 400 };
   }
   if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     throw { message: "Please enter a valid email address", status: 400 };
-  }
-  if (!data.phone || data.phone.trim().length < 10) {
-    throw { message: "Phone number must be at least 10 digits", status: 400 };
-  }
-  if (!data.requirements || data.requirements.trim().length < 10) {
-    throw { message: "Requirements must be at least 10 characters", status: 400 };
   }
 
   const token = getToken();
@@ -530,33 +567,14 @@ export const createCustomOrder = async (data: {
     throw { message: "Authentication required", status: 401 };
   }
 
-  // Prepare request body as JSON (backend expects JSON format)
-  const requestBody: {
-    name: string;
-    email: string;
-    phone: string;
-    requirements: string;
-    images?: string[];
-    budget?: number;
-  } = {
-    name: data.name.trim(),
-    email: data.email.trim(),
+  const requestBody = {
+    clientName: data.clientName.trim(),
+    clubOrTeamName: data.clubOrTeamName.trim(),
+    address: data.address.trim(),
     phone: data.phone.trim(),
-    requirements: data.requirements.trim(),
+    email: data.email.trim(),
   };
 
-  // Convert images to base64 if present
-  if (data.images && data.images.length > 0) {
-    const imagePromises = data.images.map(file => fileToDataURL(file));
-    requestBody.images = await Promise.all(imagePromises);
-  }
-
-  // Add budget if provided
-  if (data.budget !== undefined && data.budget > 0) {
-    requestBody.budget = data.budget;
-  }
-
-  // Send as JSON using postApi
   const response = await postApi("/custom-orders", requestBody, token, true);
   return await handleResponse(response);
 };
